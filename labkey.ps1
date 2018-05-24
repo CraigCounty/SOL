@@ -32,14 +32,22 @@ $apw = $acred.GetNetworkCredential().Password
 $scred = Get-Credential
 $sun = $scred.UserName
 $spw = $scred.GetNetworkCredential().Password
-foreach ($_ in $computers){
+(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/ms-lab).content|foreach-object {
     new-psdrive a filesystem \\$_\c$\users\administrator\.ssh\ -cred $c
     cp $env:programdata\authorized_keys a: -force
     psexec \\$_ -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
     remove-psdrive a
 }
+#Start-BitsTransfer $env:programdata\authorized_keys \\$_\c$\users\administrator\.ssh\ -credential $c}
 
-    Start-BitsTransfer $env:programdata\authorized_keys \\$_\c$\users\administrator\.ssh\ -credential $c}
+
+
+
+
+
+
+
+
 
 
 <#foreach computer
@@ -48,7 +56,7 @@ ssh -i ($id = "$env:tmp\id_rsa") administrator@$computer "powershell -c &{"
 
 sp "hklm:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" "AutoAdminLogon" "1"
 sp "hklm:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" "DefaultUserName" "sol"
-sp "DefaultPassword"="$p"#>
+sp "DefaultPassword"="$p"
 
 
 
@@ -67,4 +75,4 @@ ssh -o "StrictHostKeyChecking=no"-i $env:tmp\id_rsa administrator@vtest "powersh
 cp $env:programdata\id_rsa $env:tmp
 $pswd = Read-Host -Prompt "Enter password" -AsSecureString
 $pswd = [system.runtime.interopservices.marshal]::ptrtostringauto([system.runtime.interopservices.marshal]::securestringtobstr($pswd))
-ssh -o "StrictHostKeyChecking=no"-i $env:tmp\id_rsa administrator@desktop "powershell -c &{(gc `$env:programdata\SOLEnable.reg)|%{`$_ -replace 'xxxxx', '$pswd'}|sc `$env:programdata\solenable.reg;regedit /s $env:programdata\solenable.reg;restart-computer -force}"
+ssh -o "StrictHostKeyChecking=no"-i $env:tmp\id_rsa administrator@desktop "powershell -c &{(gc `$env:programdata\SOLEnable.reg)|%{`$_ -replace 'xxxxx', '$pswd'}|sc `$env:programdata\solenable.reg;regedit /s $env:programdata\solenable.reg;restart-computer -force}"#>

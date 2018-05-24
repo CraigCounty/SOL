@@ -1,9 +1,5 @@
-$pswd = Read-Host -Prompt "Enter password" -AsSecureString
-$pswd = [system.runtime.interopservices.marshal]::ptrtostringauto([system.runtime.interopservices.marshal]::securestringtobstr($pswd))
-psexec -u administrator \\vtest -p $pswd cmd /c "powershell -c sp -path 'hklm:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon' -name 'DefaultPassword' -value $pswd && regedit /s \\fs1\public\grouppolicy\test.reg"
-shutdown -m \\vtest /r /t 0
-try{psexec -u ccps\soltesting  \\vtest -p $pswd cmd /c "regedit /s \\fs1\public\grouppolicy\soldisable.reg"} catch {sleep -s 1}
-
-$pswd = Read-Host -Prompt "Enter password" -AsSecureString
-$pswd = [system.runtime.interopservices.marshal]::ptrtostringauto([system.runtime.interopservices.marshal]::securestringtobstr($pswd))
-psexec -u ccps\soltesting  \\vtest -p $pswd cmd /c "regedit /s \\fs1\public\grouppolicy\soldisable.reg"
+cp $env:programdata\id_rsa $env:tmp
+$pswd = get-credential SOL
+$pswd = $pswd.getnetworkcredential().password
+$computers = (iwr -useb raw.githubusercontent.com/craigcounty/sol/master/ms-lab).content
+ssh -o "StrictHostKeyChecking=no"-i $env:tmp\id_rsa administrator@$computers "powershell -c &{(gc `$env:programdata\solenable.reg)|%{`$_ -replace 'xxxxx', '$pswd'}|sc `$env:programdata\solenable.reg;regedit /s $env:programdata\solenable.reg;restart-computer -force}"
