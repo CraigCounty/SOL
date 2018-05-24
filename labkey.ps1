@@ -26,14 +26,31 @@ set-service sshd -star automatic
 
 
 
+
+
+
+
 $acred = Get-Credential
 $aun = $acred.UserName
 $apw = $acred.GetNetworkCredential().Password
 $scred = Get-Credential
 $sun = $scred.UserName
 $spw = $scred.GetNetworkCredential().Password
-(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/ms-lab).content|foreach-object {
-    new-psdrive a filesystem \\$_\c$\users\administrator\.ssh\ -cred $c
+new-psdrive a -psp filesystem \\vtest\c$\users\administrator\.ssh -cred $acred
+    cp $env:programdata\authorized_keys a: -force
+    psexec \\vtest -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
+    remove-psdrive a
+
+
+$acred = Get-Credential
+$aun = $acred.UserName
+$apw = $acred.GetNetworkCredential().Password
+$scred = Get-Credential
+$sun = $scred.UserName
+$spw = $scred.GetNetworkCredential().Password
+(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/ms-lab).content|out-file ($computers = "$env:tmp\ms-lab.txt")
+get-content $computers|foreach {
+    new-psdrive a -psp filesystem \\$_\c$\users\administrator\.ssh\ -cred $acred
     cp $env:programdata\authorized_keys a: -force
     psexec \\$_ -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
     remove-psdrive a
