@@ -1,10 +1,16 @@
+#for use on lab computer
+#creates new key, copies it to teacher computer programdata, adds it to authorized_keys, copies authorized_keys to teacher computer
+#sets permissions on sol stuff to stop students
+#restarting services and fixing permissions probably useless
+
+$room = read-host "room"
 if (!(test-path ($s = "$env:homedrive\users\administrator\.ssh"))) {ni $s -ty d -f >''}
 cd ($cd = "$env:programfiles\openssh-win64")
 if (!(test-path id_rsa)) {.\ssh-keygen.exe -t rsa -f id_rsa}
 restart-service ssh-agent
 restart-service sshd
 .\ssh-add.exe id_rsa
-$tc = read-host "teacher computer"
+$tc = $room="-t"
 net use t: \\$tc\c$\programdata
 cp id_rsa t:
 icacls t:\id_rsa /deny ccps\students:F
@@ -30,6 +36,22 @@ set-service sshd -star automatic
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<#
+
 $acred = Get-Credential
 $aun = $acred.UserName
 $apw = $acred.GetNetworkCredential().Password
@@ -37,37 +59,11 @@ $scred = Get-Credential
 $sun = $scred.UserName
 $spw = $scred.GetNetworkCredential().Password
 new-psdrive a -psp filesystem \\vtest\c$\users\administrator\.ssh -cred $acred
-    cp $env:programdata\authorized_keys a: -force
-    psexec \\vtest -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
-    remove-psdrive a
+cp $env:programdata\authorized_keys a: -force
+psexec \\vtest -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
+remove-psdrive a
 
-
-$acred = Get-Credential
-$aun = $acred.UserName
-$apw = $acred.GetNetworkCredential().Password
-$scred = Get-Credential
-$sun = $scred.UserName
-$spw = $scred.GetNetworkCredential().Password
-(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/ms-lab).content|out-file ($computers = "$env:tmp\ms-lab.txt")
-get-content $computers|foreach {
-    new-psdrive a -psp filesystem \\$_\c$\users\administrator\.ssh\ -cred $acred
-    cp $env:programdata\authorized_keys a: -force
-    psexec \\$_ -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force)}"
-    remove-psdrive a
-}
-#Start-BitsTransfer $env:programdata\authorized_keys \\$_\c$\users\administrator\.ssh\ -credential $c}
-
-
-
-
-
-
-
-
-
-
-
-<#foreach computer
+foreach computer
 cp $env:programdata\id_rsa $env:tmp
 ssh -i ($id = "$env:tmp\id_rsa") administrator@$computer "powershell -c &{"
 
