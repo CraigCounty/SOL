@@ -29,27 +29,29 @@ function get-ipmac { #gets ip and mac from hostname of awake computer
 
 $room = read-host "room"
 
-if (!(test-path ($rcsv = "$env:programdata\$room.csv"))) {
-    ni $rcsv -fo
+#create csv for ips/macs if it doesn't exist
+if (!(test-path ($roomCsv = "$env:programdata\$room.csv"))) {
+    ni $roomCsv -fo
     $headers = "hostname", "ipaddress", "macaddress"
-    $psObject = New-Object psobject
+    $psobject = new-object psobject
     foreach ($header in $headers) {
-        Add-Member -InputObject $psobject -MemberType noteproperty -Name $header -Value ""
+        add-member -inputobject $psobject -membertype noteproperty -name $header -value ""
     }
-    $psObject | Export-Csv ($rcsv = "$env:programdata\$room.csv") -NoTypeInformation
+    $psObject | export-csv ($roomCsv = "$env:programdata\$room.csv") -notype
 }
 
+#get credentials
 $acred = get-credential "ccps\z"
 $scred = get-credential SOL
 
-(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/$room).content|out-file ($computers = "$env:tmp\$room.txt") #get list of computers in lab
-
+#get list of computers in lab
+(iwr -useb raw.githubusercontent.com/craigcounty/sol/master/lists/$room).content|out-file ($computers = "$env:tmp\$room.txt")
 $computers = get-content $computers
 
 workflow enable-sol {
     param(
         [string[]]$computers,
-        [string[]]$rcsv,
+        [string[]]$roomCsv,
         $acred,
         $scred
     )
@@ -57,24 +59,30 @@ workflow enable-sol {
     $apw = $acred.getnetworkcredential().password
     $sun = $scred.username
     $spw = $scred.getnetworkcredential().password
+    $array = @()
+
+    #this is magic
     foreach -parallel ($computer in $computers) {
         $ipmac = get-ipmac $computer
-        $remove = import-csv $rcsv|where {$_.hostname -ne $computer}
-        $remove|export-csv $rcsv -notypeinfo
         $hash = @{
             "hostname"   = ($ipmac[0]|out-string).trim()
             "ipaddress"  = $ipmac[1]
             "macaddress" = $ipmac[2]
         }
         $newRow = New-Object PsObject -Property $hash
-        $newRow
-        Export-Csv $rcsv -inputobject $newRow -append -Force -notypeinfo
-
-        start-bitstransfer $env:programdata\authorized_keys \\$computer\c$\users\administrator\.ssh\ -credential $acred
-        psexec \\$computer -u $aun -p $apw powershell -c "&{nlu $sun -password (convertto-securestring $spw -asplaintext -force);}"
+        $workflow:array += $newRow
     }
-} enable-sol -computers $computers -rcsv $rcsv -acred $acred -scred $scred
+    return $array
+}
+
+#remove entries to update
+$array = enable-sol -computers $computers -roomCsv $roomCsv -acred $acred -scred $scred
+foreach ($a in $array){
+    $remove = import-csv $roomCsv|where {$_.hostname -ne $a.hostname}
+    $remove|export-csv $roomCsv -notypeinfo
+    export-esv $roomCsv -inputobject $a -append -force -notypeinfo
+}
 
 #workflow adds extra headers, next will remove and sort
-$sort = import-csv $rcsv|select hostname, ipaddress, macaddress -unique -ExcludeProperty PSComputerName, PSShowComputerName, PSSourceJobInstanceId|sort hostname
-$sort|export-csv $rcsv -notype
+$sort = import-csv $roomCsv|select hostname, ipaddress, macaddress -unique -ExcludeProperty PSComputerName, PSShowComputerName, PSSourceJobInstanceId|sort hostname
+$sort|export-csv $roomCsv -notype
