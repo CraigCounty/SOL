@@ -6,6 +6,6 @@ $hash = @{
     "dateTime" = (get-date|out-string).trim()
 }
 $newRow = New-Object PsObject -Property $hash
-$remove = import-csv ($csv = "\\wsus\lists$\master.csv")|where {$_.hostname -ne $hash.hostname}
+$remove = import-csv ($csv = "\\wsus\lists$\.master.csv")|where {$_.hostname -ne $hash.hostname}
 $remove|export-csv $csv -notype
 export-csv $csv -inputobject $newRow -append -force -notype
