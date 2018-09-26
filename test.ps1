@@ -28,11 +28,13 @@ function z {
         [string]$selection,
         $c,
         [switch]$v,
-        [switch]$w,
+        [switch]$j,
         [switch]$p,
         [switch]$d,
         [switch]$i
     )
+
+    if ($j){$c = 'xcopy \\fs1\public\sysadmin\jabber-config-defaults.xml "c:\Program Files (x86)\Cisco Systems\Cisco Jabber\jabber-config-defaults.xml*" && msiexec.exe /I "\\fs1\public\sysadmin\jabber.msi" /quiet /norestart'}
 
     if (!$selection) {$selection = read-host "which?"}
 
